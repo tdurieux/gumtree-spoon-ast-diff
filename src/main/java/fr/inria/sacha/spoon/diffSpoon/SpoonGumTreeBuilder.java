@@ -17,10 +17,8 @@
 
 package fr.inria.sacha.spoon.diffSpoon;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
-
+import com.github.gumtreediff.tree.ITree;
+import com.github.gumtreediff.tree.TreeContext;
 import spoon.reflect.code.CtArrayAccess;
 import spoon.reflect.code.CtBinaryOperator;
 import spoon.reflect.code.CtConditional;
@@ -38,15 +36,14 @@ import spoon.reflect.declaration.CtNamedElement;
 import spoon.reflect.reference.CtReference;
 import spoon.reflect.visitor.CtScanner;
 
-import com.github.gumtreediff.tree.ITree;
-import com.github.gumtreediff.tree.TreeContext;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 /**
  * Scanner to create a GumTree's Tree representation for a Spoon CtClass.
- * 
+ *
  * @author Matias Martinez, matias.martinez@inria.fr
- * 
  */
 public class SpoonGumTreeBuilder extends CtScanner {
 
@@ -57,16 +54,15 @@ public class SpoonGumTreeBuilder extends CtScanner {
 
 	public ITree root;
 
-	public static List<String> typesId = new ArrayList<String>();
+	public static List<String> typesId = new ArrayList<>();
 
-	
 	public SpoonGumTreeBuilder() {
 		super();
 		init();
 	}
-	
+
 	public void init() {
-		nodes = new Stack<ITree>();
+		nodes = new Stack<>();
 		root = gtContext.createTree(-1, "", "root");
 		nodes.push(root);
 	}
@@ -78,18 +74,18 @@ public class SpoonGumTreeBuilder extends CtScanner {
 		String type = getTypeName(obj.getClass().getSimpleName());
 		int id = revolveTypeId(obj);
 
-		if (obj instanceof CtInvocation ) {
+		if (obj instanceof CtInvocation) {
 			CtInvocation inv = (CtInvocation) obj;
 			if (inv.getExecutable() == null) {
 
 			} else {
 				label = inv.getExecutable().getSimpleName();
 			}
-		} else 	if (obj instanceof CtConstructorCall ) {
+		} else if (obj instanceof CtConstructorCall) {
 			CtConstructorCall inv = (CtConstructorCall) obj;
 			//workaround, the alternative that follows should be better
 			label = inv.getType().toString();
-			
+
 			// bug in some case 
 			/*if (inv.getExecutable() != null) {
 				label = inv.getExecutable().getDeclaringType().getSimpleName();
@@ -101,11 +97,10 @@ public class SpoonGumTreeBuilder extends CtScanner {
 		} else if (obj instanceof CtVariableAccess) {
 			CtVariableAccess va = (CtVariableAccess) obj;
 			// if is a workaround for some bug in noclasspath
-			if (va.getVariable()!=null) {
+			if (va.getVariable() != null) {
 				label = va.getVariable().getSimpleName();
-			} 
-		}
-		else if (obj instanceof CtBinaryOperator) {
+			}
+		} else if (obj instanceof CtBinaryOperator) {
 			CtBinaryOperator bin = (CtBinaryOperator) obj;
 			label = bin.getKind().toString();
 		} else if (obj instanceof CtUnaryOperator) {
@@ -128,29 +123,30 @@ public class SpoonGumTreeBuilder extends CtScanner {
 		ITree newNode = createNode(label, type, id);
 		newNode.setMetadata(SPOON_OBJECT, obj);
 	}
+
 	/**
 	 * Removes the "Ct" at the beginning and the "Impl" at the end
+	 *
 	 * @param simpleName
-	 * @return
+	 * @return the type name
 	 */
 	public String getTypeName(String simpleName) {
-		
-		return simpleName.substring(2, simpleName.length()-4);
+
+		return simpleName.substring(2, simpleName.length() - 4);
 	}
-	
+
 	TreeContext gtContext = new TreeContext();
 
 	private ITree createNode(String label, String typeLabel, int typeId) {
-		
+
 		ITree node = gtContext.createTree(typeId, label, typeLabel);
 
 		nodes.peek().addChild(node);
 		nodes.push(node);
-		
+
 		return node;
 	}
 
-	
 	@Override
 	public void enter(CtElement element) {
 		createNode(element);

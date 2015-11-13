@@ -1,30 +1,24 @@
 package fr.inria.sacha.spoon.diffSpoon;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.github.gumtreediff.actions.model.Action;
+import com.github.gumtreediff.actions.model.Insert;
 import com.github.gumtreediff.actions.model.Move;
 import com.github.gumtreediff.actions.model.Update;
+import com.github.gumtreediff.matchers.MappingStore;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtElement;
 import spoon.reflect.declaration.CtPackage;
 import spoon.reflect.declaration.CtType;
 
-import com.github.gumtreediff.actions.model.Action;
-import com.github.gumtreediff.actions.model.Insert;
-import com.github.gumtreediff.matchers.MappingStore;
-
-
-
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * 
- * @author  Matias Martinez, matias.martinez@inria.fr
- *
+ * @author Matias Martinez, matias.martinez@inria.fr
  */
 public class CtDiff {
 	/**
-	 * Actions over all tree nodes (CtElements) 
+	 * Actions over all tree nodes (CtElements)
 	 */
 	List<Action> allActions = null;
 	/**
@@ -32,43 +26,51 @@ public class CtDiff {
 	 */
 	List<Action> rootActions = null;
 
-	/** the mapping of this diff */
+	/**
+	 * the mapping of this diff
+	 */
 	protected MappingStore _mappingsComp = null;
 
-	
 	public CtDiff(List<Action> allActions, List<Action> rootActions, MappingStore mappingsComp) {
 		super();
 		this.allActions = allActions;
 		this.rootActions = rootActions;
 		this._mappingsComp = mappingsComp;
 	}
-	
+
 	public List<Action> getAllActions() {
 		return allActions;
 	}
+
 	public void setAllActions(List<Action> allActions) {
 		this.allActions = allActions;
 	}
+
 	public List<Action> getRootActions() {
 		return rootActions;
 	}
+
 	public void setRootActions(List<Action> rootActions) {
 		this.rootActions = rootActions;
 	}
-	
-	/** returns the changed node if there is a single one */
+
+	/**
+	 * returns the changed node if there is a single one
+	 */
 	public CtElement changedNode() {
-		if (rootActions.size()!=1) {
+		if (rootActions.size() != 1) {
 			throw new IllegalArgumentException();
 		}
 		return commonAncestor();
 	}
-	
-	/** returns the common ancestor of all changes */
+
+	/**
+	 * returns the common ancestor of all changes
+	 */
 	public CtElement commonAncestor() {
 		List<CtElement> copy = new ArrayList<>();
-		for(Action a: rootActions) {
-			CtElement el=null;
+		for (Action a : rootActions) {
+			CtElement el;
 			if (a instanceof Insert) {
 				// we take the corresponding node in the source tree
 				el = (CtElement) _mappingsComp.getSrc(a.getNode().getParent()).getMetadata(SpoonGumTreeBuilder.SPOON_OBJECT);
@@ -77,18 +79,21 @@ public class CtDiff {
 			}
 			copy.add(el);
 		}
-		while (copy.size()>=2) {
+		while (copy.size() >= 2) {
 			CtElement first = copy.remove(0);
 			CtElement second = copy.remove(0);
-			copy.add(commonAncestor(first, second,0));
+			copy.add(commonAncestor(first, second, 0));
 		}
-		return copy.get(0);
+		if(copy.size() > 0) {
+			return copy.get(0);
+		}
+		return null;
 	}
 
 	private CtElement commonAncestor(CtElement first, CtElement second, int i) {
-		while (first!=null) {
+		while (first != null) {
 			CtElement el = second;
-			while (el!=null) {
+			while (el != null) {
 				if (first == el) {
 					return first;
 				}
@@ -96,11 +101,11 @@ public class CtDiff {
 			}
 			first = first.getParent();
 		}
-		return null;		
+		return null;
 	}
 
 	@Override
-	public String toString(){
+	public String toString() {
 		String newline = System.getProperty("line.separator");
 		StringBuilder stringBuilder = new StringBuilder();
 		CtElement ctElement = commonAncestor();
@@ -115,23 +120,26 @@ public class CtDiff {
 			stringBuilder.append(" " + nodeType);
 
 			// action position
+			if (action instanceof Move) {
+				stringBuilder.append(" from ");
+			} else {
+				stringBuilder.append(" at ");
+			}
 			CtElement parent = element;
 			while (parent.getParent() != null && !(parent.getParent() instanceof CtPackage)) {
 				parent = parent.getParent();
 			}
-			String position = " at ";
 			if(parent instanceof CtType) {
-				position += ((CtType)parent).getQualifiedName();
+				stringBuilder.append(((CtType)parent).getQualifiedName());
 			}
-			position += ":" + element.getPosition().getLine();
-			if(action instanceof Move) {
+			stringBuilder.append(":" + element.getPosition().getLine());
+			if (action instanceof Move) {
+				stringBuilder.append(" to ");
 				CtElement elementDest = (CtElement) action.getNode().getMetadata(SpoonGumTreeBuilder.SPOON_OBJECT_DEST);
-				position = " from " + element.getParent(CtClass.class).getQualifiedName()
-						+ ":" + element.getPosition().getLine();
-				position += " to " + elementDest.getParent(CtClass.class).getQualifiedName()
-						+ ":" + elementDest.getPosition().getLine();
+				stringBuilder.append(elementDest.getParent(CtClass.class).getQualifiedName());
+				stringBuilder.append(":" + elementDest.getPosition().getLine());
 			}
-			stringBuilder.append(position + newline);
+			stringBuilder.append(newline);
 
 			// code change
 			String label = element.toString();
@@ -146,11 +154,10 @@ public class CtDiff {
 			}
 
 			// if all actions are applied on the same node print only the first action
-			if(element.equals(ctElement) && action instanceof Update) {
+			if (element.equals(ctElement) && action instanceof Update) {
 				break;
 			}
 		}
 		return stringBuilder.toString();
 	}
-
 }

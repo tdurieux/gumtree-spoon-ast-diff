@@ -1,13 +1,5 @@
 package fr.inria.sacha.spoon.diffSpoon;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.github.gumtreediff.actions.model.Action;
 import com.github.gumtreediff.actions.model.Delete;
 import com.github.gumtreediff.actions.model.Insert;
@@ -16,21 +8,22 @@ import com.github.gumtreediff.actions.model.Update;
 import com.github.gumtreediff.matchers.Mapping;
 import com.github.gumtreediff.matchers.MappingStore;
 import com.github.gumtreediff.tree.ITree;
-import com.github.gumtreediff.tree.Tree;
+import spoon.reflect.declaration.CtElement;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Action Classifier
- * 
+ *
  * @author Matias Martinez, matias.martinez@inria.fr
- * 
  */
 public class ActionClassifier {
-
-	public boolean defaultOnlyRoots = true;
-
-	ITree tl = null;
-	ITree tr = null;
-	public Set<Mapping> mappings = null;
-
 
 	// /
 	// ROOT CLASSIFIER
@@ -51,10 +44,10 @@ public class ActionClassifier {
 	protected Map<ITree, Action> originalActionsDst = new HashMap<>();
 
 	/**
-	 * @return
-	 * 
+	 * @return the ROOT actions
 	 */
-	public List<Action> getRootActions(Set<Mapping> rawMappings, List<Action> actions) {
+	public List<Action> getRootActions(Set<Mapping> rawMappings,
+			List<Action> actions) {
 		clean();
 		MappingStore mappings = new MappingStore(rawMappings);
 
@@ -70,7 +63,8 @@ public class ActionClassifier {
 				srcUpdTrees.add(a.getNode());
 				dstUpdTrees.add(mappings.getDst(a.getNode()));
 				ITree dest = mappings.getDst(a.getNode());
-				a.getNode().setMetadata(SpoonGumTreeBuilder.SPOON_OBJECT_DEST, dest.getMetadata(SpoonGumTreeBuilder.SPOON_OBJECT));
+				CtElement destElement = (CtElement) dest.getMetadata(SpoonGumTreeBuilder.SPOON_OBJECT);
+				a.getNode().setMetadata(SpoonGumTreeBuilder.SPOON_OBJECT_DEST, destElement);
 				//dstMvTrees.add(dest);
 				//originalActionsDst.put(dest, a);
 				//New
@@ -79,7 +73,8 @@ public class ActionClassifier {
 			} else if (a instanceof Move /* || a instanceof Permute*/) {
 				srcMvTrees.add(a.getNode());
 				ITree dest = mappings.getDst(a.getNode());
-				a.getNode().setMetadata(SpoonGumTreeBuilder.SPOON_OBJECT_DEST, dest.getMetadata(SpoonGumTreeBuilder.SPOON_OBJECT));
+				CtElement destElement = (CtElement) dest.getMetadata(SpoonGumTreeBuilder.SPOON_OBJECT);
+				a.getNode().setMetadata(SpoonGumTreeBuilder.SPOON_OBJECT_DEST, destElement);
 				dstMvTrees.add(dest);
 				//Bugfix? 
 				//originalActionsDst.put(a.getNode(), a);
@@ -91,20 +86,20 @@ public class ActionClassifier {
 
 	/**
 	 * This method retrieves ONLY the ROOT actions
-	 * 
-	 * @return
+	 *
+	 * @return the ROOT actions
 	 */
 	private List<Action> retrieveRootActionsFromTreeNodes() {
 
-		List<Action> rootActions = new ArrayList<Action>();
+		List<Action> rootActions = new ArrayList<>();
 
-/*		for (Tree t : dstUpdTrees) {
+		/*for (Tree t : dstUpdTrees) {
 			// inc("UPD " + t.getTypeLabel() + " IN " +
 			// t.getParent().getTypeLabel(), summary);
 			Action a = originalActionsDst.get(t);
 			rootActions.add(a);
 		}*/
-		
+
 		//New: iterates source instead of dest
 		for (ITree t : srcUpdTrees) {
 			// inc("UPD " + t.getTypeLabel() + " IN " +
@@ -126,7 +121,7 @@ public class ActionClassifier {
 			}
 		}
 		//Due to the change in getRootActions
-	/*	for (Tree t : srcMvTrees) {
+		/*for (Tree t : srcMvTrees) {
 			if (!srcMvTrees.contains(t.getParent())) {
 				Action a = originalActionsSrc.get(t);
 				rootActions.add(a);
@@ -142,9 +137,6 @@ public class ActionClassifier {
 		return rootActions;
 	}
 
-
-	
-	
 	private void clean() {
 		srcUpdTrees.clear();
 
